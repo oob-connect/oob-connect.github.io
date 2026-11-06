@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classroom Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ============================ AUTH VIEW ============================ -->
+    <main id="auth-view" class="auth-wrap" hidden>
+      <div class="auth-card-wrap">
+        <div class="auth-brand">
+          <div class="auth-logo" data-lucide="graduation-cap"></div>
+          <div>
+            <h1>Classroom Chat</h1>
+            <p id="auth-subtitle" class="muted">Sign in to continue</p>
+          </div>
+        </div>
+
+        <form id="auth-form" class="auth-card" autocomplete="on">
+          <label id="name-field" class="field" hidden>
+            <span class="label">Display name</span>
+            <input id="auth-name" type="text" placeholder="e.g. Priya from Grade 9" autocomplete="nickname" />
+          </label>
+
+          <label class="field">
+            <span class="label">Email</span>
+            <input id="auth-email" type="email" placeholder="you@school.edu" autocomplete="email" required />
+          </label>
+
+          <label class="field">
+            <span class="label">Password</span>
+            <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password" required minlength="6" />
+          </label>
+
+          <p id="auth-error" class="alert alert-error" hidden></p>
+          <p id="auth-notice" class="alert alert-ok" hidden></p>
+
+          <button id="auth-submit" type="submit" class="btn btn-accent">
+            <span class="btn-label">Sign in</span>
+          </button>
+
+          <p class="switch">
+            <span id="switch-text">No account yet?</span>
+            <button type="button" id="auth-toggle" class="link">Sign up</button>
+          </p>
+        </form>
+      </div>
+    </main>
+
+    <!-- ============================ APP VIEW ============================= -->
+    <div id="app-view" class="shell" hidden>
+      <!-- Left rail: rooms -->
+      <aside class="rail">
+        <div class="rail-head">
+          <div class="rail-brand">
+            <span class="rail-logo" data-lucide="graduation-cap"></span>
+            <span class="rail-title">Classroom Chat</span>
+          </div>
+        </div>
+
+        <div class="rail-section">
+          <div class="rail-section-head">
+            <span class="label">Rooms</span>
+            <button id="new-room-btn" class="icon-btn" title="New room" hidden>
+              <span data-lucide="plus"></span>
+            </button>
+          </div>
+
+          <form id="new-room-form" class="new-room" hidden>
+            <input id="new-room-name" type="text" placeholder="Room name" maxlength="80" required />
+            <input id="new-room-topic" type="text" placeholder="Topic (optional)" maxlength="200" />
+            <div class="new-room-actions">
+              <button type="submit" class="btn btn-accent btn-sm">Create</button>
+              <button type="button" id="new-room-cancel" class="btn btn-ghost btn-sm">Cancel</button>
+            </div>
+            <p id="new-room-error" class="alert alert-error" hidden></p>
+          </form>
+
+          <ul id="room-list" class="room-list"></ul>
+          <p id="rooms-empty" class="empty" hidden>No rooms yet.</p>
+        </div>
+
+        <div class="rail-foot">
+          <div class="who">
+            <span class="avatar" id="me-avatar">?</span>
+            <div class="who-meta">
+              <span id="me-name" class="who-name">—</span>
+              <span id="me-role" class="muted who-role">member</span>
+            </div>
+          </div>
+          <button id="signout-btn" class="icon-btn" title="Sign out">
+            <span data-lucide="log-out"></span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Center: messages -->
+      <section class="main">
+        <header class="main-head">
+          <div>
+            <h2 id="room-name" class="room-name">Select a room</h2>
+            <p id="room-topic" class="muted room-topic"></p>
+          </div>
+          <span id="live-dot" class="live" title="Realtime status">
+            <span class="live-dot"></span>
+            <span>live</span>
+          </span>
+        </header>
+
+        <div id="message-scroll" class="messages">
+          <div id="messages-placeholder" class="placeholder">
+            <span data-lucide="messages-square"></span>
+            <p>Pick a room on the left to start chatting.</p>
+          </div>
+          <ul id="message-list" class="message-list"></ul>
+        </div>
+
+        <form id="composer" class="composer" hidden>
+          <textarea
+            id="composer-input"
+            rows="1"
+            placeholder="Write a message…  (Enter to send, Shift+Enter for a new line)"
+            maxlength="4000"
+          ></textarea>
+          <button type="submit" class="btn btn-accent btn-send" title="Send">
+            <span data-lucide="send-horizontal"></span>
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <!-- Vendored libraries (see vendor/README.md), then config + app logic -->
+    <script src="vendor/supabase.js"></script>
+    <script src="vendor/lucide.min.js"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
