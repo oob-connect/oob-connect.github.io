@@ -7,8 +7,11 @@ rooms; everyone else signs up, signs in, and posts messages. Built as plain
 
 ## How it works
 
-- **Auth** — Supabase email/password. Every signed-in user gets a `profiles`
-  row automatically (via a database trigger).
+- **Auth** — Microsoft (Entra ID) sign-in for accountability, plus email/password
+  as a fallback. Access is restricted to **@gemsed.com** accounts (an existing
+  admin on another domain is allowed through, so you are not locked out). This is
+  enforced in the database, not just the UI. Every allowed user gets a `profiles`
+  row automatically.
 - **Rooms** — only an admin can create or delete rooms. This is enforced in the
   database with Row-Level Security, so it holds even if someone bypasses the UI
   and calls the API directly. The "New room" button is only shown to admins as
@@ -22,9 +25,29 @@ rooms; everyone else signs up, signs in, and posts messages. Built as plain
 
 ### 1. Create the database
 
-In your Supabase project, open the **SQL editor** and run:
+In your Supabase project, open the **SQL editor** and run, in order:
 
 1. `supabase/migrations/0001_init.sql` — tables, triggers, RLS, realtime.
+2. `supabase/migrations/0002_restrict_domain.sql` — restricts access to the
+   `@gemsed.com` domain (admins excepted). To use a different domain, change
+   `@gemsed.com` in that file before running it.
+
+### 1a. Enable Microsoft (Entra ID) sign-in
+
+1. In **Microsoft Entra admin center → App registrations → New registration**,
+   register an app. Set the redirect URI (Web) to the callback Supabase shows in
+   the next step (`https://<your-ref>.supabase.co/auth/v1/callback`). To lock
+   sign-in to your tenant only, choose **Accounts in this organizational
+   directory only (single tenant)**. Create a **client secret**.
+2. In **Supabase → Authentication → Providers → Azure**, enable it and paste the
+   **Application (client) ID**, **secret**, and your **Azure Tenant URL**
+   (`https://login.microsoftonline.com/<tenant-id>`). Single-tenant + the domain
+   check means only `@gemsed.com` accounts get in.
+3. In **Authentication → URL Configuration**, set the **Site URL** (and add a
+   redirect URL) to where the app is hosted (your GitHub Pages URL).
+
+> Want Microsoft only? In **Authentication → Providers → Email**, turn Email off.
+> The app still works; the email/password form just won't be usable.
 
 ### 2. Make yourself the admin
 

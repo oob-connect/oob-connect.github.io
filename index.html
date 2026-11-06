@@ -25,6 +25,18 @@
         </div>
 
         <form id="auth-form" class="auth-card" autocomplete="on">
+          <button type="button" id="ms-btn" class="btn btn-ms">
+            <svg viewBox="0 0 21 21" aria-hidden="true">
+              <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+              <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+              <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+              <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+            </svg>
+            <span>Continue with Microsoft</span>
+          </button>
+
+          <div class="or"><span>or use your school email</span></div>
+
           <label id="name-field" class="field" hidden>
             <span class="label">Display name</span>
             <input id="auth-name" type="text" placeholder="e.g. Priya from Grade 9" autocomplete="nickname" />
@@ -51,6 +63,8 @@
             <span id="switch-text">No account yet?</span>
             <button type="button" id="auth-toggle" class="link">Sign up</button>
           </p>
+
+          <p class="auth-note">Only <b>@gemsed.com</b> school accounts can sign in.</p>
         </form>
       </div>
     </main>

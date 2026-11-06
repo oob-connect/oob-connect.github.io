@@ -89,6 +89,16 @@
   // =========================================================================
   // AUTH
   // =========================================================================
+  // Accountability: everyone must sign in with a school account. The database
+  // enforces this too (see supabase/migrations/0002_restrict_domain.sql); an
+  // existing admin on another domain is allowed through so you are never
+  // locked out of your own instance.
+  var ALLOWED_DOMAIN = "gemsed.com";
+  function emailAllowed(email) {
+    return new RegExp("@" + ALLOWED_DOMAIN.replace(/\./g, "\\.") + "$", "i").test(email || "");
+  }
+  var pendingAuthError = null;
+
   var authMode = "signin";
 
   function setAuthMode(mode) {
@@ -110,6 +120,21 @@
     setAuthMode(authMode === "signin" ? "signup" : "signin");
   });
 
+  // Sign in with a Microsoft (Entra ID) school account.
+  $("ms-btn").addEventListener("click", function () {
+    hide($("auth-error")); hide($("auth-notice"));
+    client.auth
+      .signInWithOAuth({
+        provider: "azure",
+        options: {
+          scopes: "openid email profile",
+          redirectTo: location.origin + location.pathname,
+        },
+      })
+      .then(function (res) { if (res.error) authError(res.error.message); })
+      .catch(function (err) { authError(err.message || "Could not start Microsoft sign-in."); });
+  });
+
   $("auth-form").addEventListener("submit", function (e) {
     e.preventDefault();
     hide($("auth-error")); hide($("auth-notice"));
@@ -120,6 +145,13 @@
     btn.disabled = true;
 
     var done = function () { btn.disabled = false; };
+
+    // Block non-school emails up front (the database enforces this too).
+    if (authMode === "signup" && !emailAllowed(email)) {
+      authError("Sign up with your @" + ALLOWED_DOMAIN + " school account.");
+      done();
+      return;
+    }
 
     if (authMode === "signup") {
       client.auth
@@ -195,8 +227,12 @@
     list.innerHTML = "";
     $("rooms-empty").hidden = state.rooms.length > 0;
 
+    var amAdmin = state.profile && state.profile.is_admin;
+
     state.rooms.forEach(function (room) {
       var li = document.createElement("li");
+      li.className = "room-row";
+
       var btn = document.createElement("button");
       btn.className = "room-item" + (room.id === state.activeRoomId ? " active" : "");
       btn.innerHTML =
@@ -204,8 +240,63 @@
         (room.topic ? '<span class="r-topic">' + escapeHtml(room.topic) + "</span>" : "");
       btn.addEventListener("click", function () { selectRoom(room.id); });
       li.appendChild(btn);
+
+      // Admins get a delete control per room (DB also enforces admin-only).
+      if (amAdmin) {
+        var del = document.createElement("button");
+        del.className = "room-del icon-btn";
+        del.title = "Delete room";
+        del.setAttribute("aria-label", "Delete room " + room.name);
+        del.innerHTML = '<span data-lucide="trash-2"></span>';
+        del.addEventListener("click", function (e) {
+          e.stopPropagation();
+          deleteRoom(room);
+        });
+        li.appendChild(del);
+      }
+
       list.appendChild(li);
     });
+
+    icons(); // render any newly added trash icons
+  }
+
+  function deleteRoom(room) {
+    var ok = window.confirm(
+      "Delete “" + room.name + "”?\n\n" +
+        "This removes the room and all of its messages for everyone. " +
+        "This cannot be undone."
+    );
+    if (!ok) return;
+
+    client
+      .from("rooms")
+      .delete()
+      .eq("id", room.id)
+      .then(function (res) {
+        if (res.error) {
+          alert(
+            /row-level security/i.test(res.error.message || "")
+              ? "Only an admin can delete rooms."
+              : "Could not delete room: " + res.error.message
+          );
+          return;
+        }
+        // If the open room was the one removed, reset the main pane.
+        if (state.activeRoomId === room.id) {
+          state.activeRoomId = null;
+          if (state.msgChannel) { client.removeChannel(state.msgChannel); state.msgChannel = null; }
+          state.messages = [];
+          $("message-list").innerHTML = "";
+          $("room-name").textContent = "Select a room";
+          $("room-topic").textContent = "";
+          $("live-dot").classList.remove("on");
+          show($("messages-placeholder"));
+          hide($("composer"));
+        }
+        state.rooms = state.rooms.filter(function (r) { return r.id !== room.id; });
+        renderRooms(); // realtime will also refresh for other clients
+      });
   }
 
   function subscribeRooms() {
@@ -443,6 +534,7 @@
     hide($("app-view"));
     show($("auth-view"));
     setAuthMode("signin");
+    if (pendingAuthError) { authError(pendingAuthError); pendingAuthError = null; }
     icons();
   }
 
@@ -450,7 +542,17 @@
     state.session = session;
     if (!session) { state.profile = null; enterAuth(); return; }
 
+    var email = session.user.email || "";
+
     loadProfile(session.user.id).then(function (profile) {
+      // Gate: only school accounts (or an existing admin) may enter.
+      if (!emailAllowed(email) && !(profile && profile.is_admin)) {
+        pendingAuthError =
+          "That account isn’t allowed. Sign in with your @" + ALLOWED_DOMAIN + " school account.";
+        client.auth.signOut(); // -> onSession(null) -> enterAuth shows the message
+        return;
+      }
+
       if (!profile) {
         // Profile row is created by a DB trigger; retry once after a beat.
         setTimeout(function () {
